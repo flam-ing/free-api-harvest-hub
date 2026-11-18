@@ -53,8 +53,14 @@ description: >-
 - 폼에 reCAPTCHA iframe(`recaptcha/enterprise/anchor`)이 보이기만 하고 `g-recaptcha-response` textarea가 없으면 **토큰을 제출 시점에 생성**하는 방식이다. 폼을 다 채운 뒤 **30초 기다렸다가 제출**하면 통과했다(Mux: 과거 "Missing recaptcha" → 이번 성공).
 - 버튼을 한 번 눌렀는데 스피너만 돌고 오류가 안 뜨면 **성공한 것일 수 있으니** 20초 뒤 URL을 확인한다(대개 `/organizations/.../environment/new`로 이동).
 
-### 1-4. 비밀번호·캡차·차단
-- 이메일+비밀번호 전용 서비스는 **임의 비밀번호를 만들지 않는다.** 사용자가 볼트로 정한 비밀번호가 있을 때만 진행.
+### 1-4. 비밀번호·계정명(닉네임)·캡차 원칙 (필수 준수)
+- **GitHub 계정명 생성 규칙 (★엄격 준수★)**:
+  - `rlaalsdn` 같은 개인 본명/이메일 프리픽스를 **절대 사용하지 않는다**.
+  - **일반 명사, 깔끔한 개발/기술 키워드, 영단어 조합의 '레어닉'스러운 사용자명**으로 생성한다.
+  - 사용자명을 정하기 어렵거나 모호한 경우 **절대 임의로 막 짓지 말고, 사용자에게 먼저 후보를 물어보고 확정**한다.
+- **비밀번호 규칙 (★엄격 준수★)**:
+  - 임의의 무작위 비밀번호를 마음대로 생성하지 않는다.
+  - **사용자가 지정한 공용 비밀번호**를 사용하거나, 비밀번호가 필요한 서비스는 **사전에 사용자에게 사용할 비밀번호를 확인/질의**한 후 진행한다.
 - Cloudflare "Just a moment...": `browser_wait_for(seconds=60)` 1~2회 후 미해제면 스킵. 체크박스를 직접 클릭하지 않는다.
 - **`dash.cloudflare.com` 자체의 Turnstile(2026-11-17 확인)**: 가입·로그인 모두 이 환경에서 **불가**. 폼은 정상이지만 사람 확인 위젯이 DOM에 iframe을 만들지 않고 `input[id^="cf-chl-widget-"]_response`가 0바이트로 남는다(`window.turnstile.getResponse()`도 `undefined`). 원인은 속도다 — `/api/v4/captcha/challenge` 가 43~48초, `challenges.cloudflare.com/turnstile/v0/api.js` 가 55초 이상 걸려 사이트 검증 타임아웃이 먼저 터진다. 결과 문구는 가입 "Please complete the CAPTCHA and try again.", 로그인 "There was a problem with verification. Please reload and try again." (버튼이 "Loading Sign in"으로 오래 멈춘다). 호스트 솔버가 "success"를 돌려줘도 페이지 토큰은 안 채워진다. 세션 교체·재로드로도 동일 → 이 서비스는 시간 대신 사용자 기기 인계로 풀어야 한다.
 - reCAPTCHA가 배지만 뜨고 토큰을 못 만드는 경우(Mux 구글 경로) → "Missing recaptcha"로 제출 불가. **단, invisible reCAPTCHA는 폼 작성 후 30초 대기하면 통과하는 경우가 있다**(1-3c, Mux 2026-11-18 성공).

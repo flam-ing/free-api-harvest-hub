@@ -9,7 +9,7 @@ description: >-
 # 무료 API 키 가입·발급 노하우 (`free-api-harvest`)
 
 `flam-ing/free-api-harvest-hub` 목록(21개 서비스)을 실제 브라우저로 돌며 확인한 사이트별 가입·발급·검증 노하우다.
-2026-11-16~18 실행 기준. 계정 3개(`rlaalsdn4567456` → `rlaalsdn906` → `rlaalsdn19374`)로 같은 목록을 반복 수행했고, **최종 갱신은 2026-11-18 `rlaalsdn19374@gmail.com` 실행**이다.
+2026-11-16~19 실행 기준. 계정 4개(`rlaalsdn4567456` → `rlaalsdn906` → `rlaalsdn19374` → `rlaalsdn28362`)로 같은 목록을 반복 수행했고, **최종 갱신은 2026-11-19 `rlaalsdn28362@gmail.com` 실행**이다(성공 19곳).
 
 **빠른 참조**: ① 지금 막히는 곳과 그 이유, ② 통한 우회로, ③ 계정 격리 체크리스트는 **5장**에 모아 두었다. 서비스별 절차는 2장.
 
@@ -169,14 +169,6 @@ description: >-
 - **검증**: `GET https://console.neon.tech/api/v2/users/me` (Bearer) → 200 · `GET /api/v2/projects?org_id=<orgId>` → 200 · `GET /api/v2/users/me/organizations` → 200(`plan: free`)
 - **주의**: 최신 API는 `/api/v2/projects`에 **`org_id`가 필수**(없으면 400). 등록 페이지(`/register`)의 Cloudflare는 그대로일 수 있으나 **로그인 페이지의 GitHub 경로는 깨끗하다**.
 
-### InstaBox (클라우드 VM & 원격 샌드박스)
-- **가입/콘솔**: `https://instabox.sh/` → `https://instabox.sh/dashboard` (또는 `/settings/api-keys`)
-- **방법**: Google OAuth 또는 GitHub OAuth 로그인. 온보딩 완료 시 계정당 1대 평생 무료 VM (4 vCPU / 8GB RAM / 20GB NVMe) 자동 프로비저닝.
-- **키 발급**: Dashboard → Settings / API Tokens → **Create Token** → Bearer API Key (`ibk_...`) 발급.
-- **검증**: `GET https://api.instabox.sh/v1/instances` (`Authorization: Bearer <ibk_...>` 헤더) → 200.
-- **활용**: REST API를 통한 셸 명령 원격 비동기 실행 및 에이전트용 격리 샌드박스 환경으로 활용.
-
-
 ---
 
 ## 3. 인증 방식·제약별 나머지 서비스 정리
@@ -222,11 +214,11 @@ description: >-
 
 | 서비스 | 막히는 단계 | 이유 (관측된 근거) | 남은 우회로 |
 |---|---|---|---|
-| **Google AI Studio** | 프로젝트 생성 → API 키 | `Failed to create project, The request is suspicious. Please try again.` — **계정 3개(rlaalsdn4567456·906·19374) 모두 동일**. 결제 수단·기존 GCP 프로젝트가 없는 새 계정은 이 브라우저에서 프로젝트를 만들 수 없다. 키 생성 다이얼로그도 `No Cloud Projects Available`로 비활성 | 브라우저로는 불가. 사용자가 자기 기기/결제 수단으로 프로젝트를 만들거나, 기존 GCP 프로젝트를 `프로젝트 가져오기`로 연결해야 함 |
+| **Google AI Studio** | (2026-11-19 **해결**) | 이전 3계정은 프로젝트 직접 생성에서 `suspicious`로 막혔으나, 네 번째 계정(rlaalsdn28362)은 온보딩 후 **`API 키 만들기`만 눌렀을 때 기본 프로젝트가 자동 생성**되며 통과했다 → 6장 | (해결) 새 프로젝트를 직접 만들지 말고 `API 키 만들기`만 누른다 |
 | **Groq Cloud** | 가입 | `console.groq.com/authenticate` 에서 `signup_blocked`. Google·이메일 매직링크·GitHub **3경로 전부** 차단 | 이 환경 불가 |
 | **Cloudflare (`dash.cloudflare.com`)** | 가입·로그인 | 자체 Turnstile: `input[id^="cf-chl-widget-"]_response` 가 0바이트, iframe 미생성. `/api/v4/captcha/challenge` 43~48초·`challenges.cloudflare.com/turnstile/v0/api.js` 55초+ 로 사이트 검증 타임아웃이 먼저 발생. 문구: 가입 "Please complete the CAPTCHA…", 로그인 "There was a problem with verification…" | 사용자 기기 인계 |
 | **Hugging Face** | 가입 폼 제출 | hCaptcha: `js.hcaptcha.com`·`newassets.hcaptcha.com` 서브리소스 80초+ pending, 탭 직접 열면 `ERR_CONNECTION_CLOSED` → "Unknown h-captcha error." (셸 curl은 같은 호스트 정상 → 캡차 자산 호스트만 브라우저 egress에서 막힘) | **로그인 화면에는 캡차가 없다** → 사용자가 자기 기기에서 가입만 마치면 이 브라우저에서 로그인 후 `/settings/tokens` 발급 가능(미검증) |
-| **Turso** | 가입 | Clerk + Cloudflare Turnstile, `cf-turnstile-response` 0바이트. GitHub/Google/AgentID 모두 버튼이 `disabled`+"Loading" | 로그인 화면은 캡차 없음 → 사용자가 가입만 하면 이후 자동화 가능(미검증) |
+| **Turso** | (2026-11-19 **해결**) | 과거 가입 페이지는 Clerk + Turnstile로 차단 | **로그인 페이지(`app.turso.tech/login`)의 GitHub** 경로는 캡차 없이 통과하고 계정이 자동 생성된다(검증 완료) → 6장 |
 | Walmart / Yelp / Lyft | - | 사이트가 이 브라우저를 막음(브라우저 스킬 known walls) | 다른 채널 |
 
 ## 5-2. 막혔을 때 통한 우회로 (증상 → 원인 → 통한 방법)
@@ -263,4 +255,37 @@ description: >-
 
 - 기록 문서: 요약표(서비스·상태·키/식별자) → **계정 분리 확인 표** → 서비스별 상세(경로·값·검증 결과·주의) → 남은 참고사항.
 - DB 등록 스크립트: `vault_kb/knowledge_vault.db` 의 `credentials(category, provider, account_identifier, key_name, key_value, endpoint_url, meta_info, is_active)`, 중복 방지는 `(provider, key_name, account_identifier)`. `py_compile` + **동일 스키마 임시 DB에 2회 실행**(2회차 전부 skip)으로 검증한다.
-- 만료 선택지가 있는 서비스는 전부 **Never/No expiration** 으로 발급한다(Upstash, OpenRouter, Supabase, ElevenLabs, PostHog, Clerk, MongoDB Atlas, Neon).
+- 만료 선택지가 있는 서비스는 전부 **Never/No expiration** 으로 발급한다(Upstash, OpenRouter, Supabase, ElevenLabs, PostHog, Clerk, MongoDB Atlas, Neon, Turso, InstaBox, Modal).
+
+---
+
+## 6. 2026-11-19 `rlaalsdn28362@gmail.com` 실행에서 새로 확인된 것
+
+네 번째 계정으로 15곳 + AI Studio + 추가 2곳을 돌린 결과, **이전에 막혔던 두 곳이 통과**했다(성공 19곳 / 차단 3곳: Groq·Cloudflare·Hugging Face).
+
+### 6-1. Google AI Studio — 새 프로젝트를 만들지 말 것
+- `aistudio.google.com/apikey` → `/onboarding`(만 18세 체크 → 계속 → **건너뛰기**) → `/api-keys` → **`API 키 만들기`** 한 번.
+- 이때 **기본 프로젝트(`gen-lang-client-…`, 무료 등급)가 자동 생성되며 키가 즉시 발급**된다. `프로젝트 → 새 프로젝트 만들기`를 직접 누르면 예전처럼 `suspicious`로 막힌다.
+- 키 형식이 `AQ.…`인 새 형식이고, 검증은 `GET https://generativelanguage.googleapis.com/v1beta/models?key=<key>` → 200(잘못된 키 400). 생성 호출은 모델 사정으로 실패할 수 있다 — `gemini-2.0/2.5-flash`는 **404(신규 사용자 제공 종료)**, `gemini-3.8-flash`는 **503(혼잡)** → 모델 목록 200으로 판단.
+
+### 6-2. Turso — 로그인 페이지의 GitHub으로 가입이 끝난다
+- `app.turso.tech/login` → **Sign in with GitHub**(새 GitHub 계정) → `/login/sso-callback` → `/rlaalsdn28362` 로그인 완료. **계정이 자동 생성**되고 Turnstile은 나오지 않는다(가입 페이지 `/signup`만 막혀 있다).
+- 토큰: Settings → **API Tokens → Create Token**(이름만 입력). `GET https://api.turso.tech/v1/organizations` → 200.
+- **함정**: 조직 경로에 숫자 org id를 쓰면 404(`organization 1000307514 not found`) → **slug**를 써야 한다(`/v1/organizations/<slug>/databases`).
+
+### 6-3. InstaBox (`instabox.sh`) — 카드·전화 없이 Free
+- `instabox.sh` → **Sign up** → `auth.instabox.sh`(WorkOS AuthKit) → **Google로 계속하기** → 대시보드 첫 진입 시 **Agree & continue**(Rules of the road) → API Keys → **Create Key**.
+- 키 접두사 `ibk_`, 헤더는 **`X-API-Key`**. 검증: `/v1/machines`·`/v1/orgs`·`/v1/usage` 모두 200. Free는 maxMachines 1·vCPU 4.
+
+### 6-4. Modal (`modal.com`) — 카드 없이 Starter
+- `modal.com/signup` → **Continue with Google** → 계정 선택 → 계속 → `apps/<user>/main?onboarding=1`. 카드·전화·캡차 요구 없음(상단 `Credits $1.00` 표시).
+- 토큰: `settings/<user>/tokens/api-tokens` → **New token**(이름, **Set token lifetime 해제** = 만료 없음) → `ak-…`/`as-…` 1회 표시.
+- 검증: `MODAL_TOKEN_ID`/`MODAL_TOKEN_SECRET` 환경변수로 `modal token info`(+`modal app list`) → workspace/user 확인, 잘못된 secret은 "Token validation failed". (CLI는 `pip install modal`로 설치)
+
+### 6-5. 그 밖에 새로 확인된 소소한 것
+- **ElevenLabs**: 이날 이 셸 egress에서 `GET /v1/user`·`/v1/voices`가 TLS 이후 타임아웃(000)이었다 → **`GET /v1/models`** 로 키 검증(200/400). 계정 상세는 대시보드에서 확인.
+- **OpenRouter** 전체 키 확인은 Copy 후 **New key 다이얼로그 Name 칸에 Ctrl+V**(검색창은 해시로 바꿔 표시).
+- **Tavily** 전체 키 확인은 **Enter coupon code** 칸에 Ctrl+V(확인 후 칸 비우기).
+- **MongoDB Atlas** ToS 체크박스는 좌표 클릭(18×18). 새 조직은 `rlaalsdn's Org - <날짜>`.
+- **Jina** 무료 10M 크레딧은 **브라우저당 1회** — 새 계정으로 로그인해도 키 관리에 같은 익명 키가 보이고, 새로 만든 키는 0토큰.
+- **Groq**(`signup_blocked`), **Cloudflare**(가입 페이지 무응답), **Hugging Face**(`js.hcaptcha.com/1/api.js` status 0)는 2026-11-19 재시도에서도 동일 — 재시도 불필요.

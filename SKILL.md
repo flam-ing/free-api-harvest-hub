@@ -8,8 +8,8 @@ description: >-
 
 # 무료 API 키 가입·발급 노하우 (`free-api-harvest`)
 
-`flam-ing/free-api-harvest-hub` 목록(21개 서비스)을 실제 브라우저로 돌며 확인한 사이트별 가입·발급·검증 노하우다.
-2026-11-16~19 실행 기준. 계정 4개(`rlaalsdn4567456` → `rlaalsdn906` → `rlaalsdn19374` → `rlaalsdn28362`)로 같은 목록을 반복 수행했고, **최종 갱신은 2026-11-19 `rlaalsdn28362@gmail.com` 실행**이다(성공 19곳).
+`flam-ing/free-api-harvest-hub` 목록(21개 → 2026-11-19 기준 36개 서비스)을 실제 브라우저로 돌며 확인한 사이트별 가입·발급·검증 노하우다.
+2026-11-16~19 실행 기준. 계정 4개(`rlaalsdn4567456` → `rlaalsdn906` → `rlaalsdn19374` → `rlaalsdn28362`)로 같은 목록을 반복 수행했고, **최종 갱신은 2026-11-19 `rlaalsdn28362@gmail.com` 실행**이다(성공 24곳 / 차단 8곳).
 
 **빠른 참조**: ① 지금 막히는 곳과 그 이유, ② 통한 우회로, ③ 계정 격리 체크리스트는 **5장**에 모아 두었다. 서비스별 절차는 2장.
 
@@ -295,3 +295,91 @@ description: >-
 - **MongoDB Atlas** ToS 체크박스는 좌표 클릭(18×18). 새 조직은 `rlaalsdn's Org - <날짜>`.
 - **Jina** 무료 10M 크레딧은 **브라우저당 1회** — 새 계정으로 로그인해도 키 관리에 같은 익명 키가 보이고, 새로 만든 키는 0토큰.
 - **Groq**(`signup_blocked`), **Cloudflare**(가입 페이지 무응답), **Hugging Face**(`js.hcaptcha.com/1/api.js` status 0)는 2026-11-19 재시도에서도 동일 — 재시도 불필요.
+
+---
+
+## 7. 2026-11-19 36종 개정분(신규 9줄) 결과 — 성공 5 / 차단 5
+
+README에 새로 들어온 #4 Cerebras, #5 Mistral, #8 Lightning AI, #18 Outcrawl, #19 Browserbase, #20 Scrapfly, #21 Bright Data, #34 Simular Box, #35 Koyeb/Fly.io 중 **키가 나온 곳은 Browserbase·Scrapfly·Bright Data·Simular Box·Fly.io 5곳**이다(오픈소스/카탈로그 3곳과 Colab·Kaggle은 제외).
+
+### 7-1. 성공 5곳 (전부 Google OAuth, 전화·캡차·카드 없음)
+| 서비스 | 가입 경로 | 함정 / 요령 | 키 위치 · 검증 |
+|---|---|---|---|
+| **Browserbase** | `/sign-up` → **Continue with Google** | 첫 OAuth는 계정이 없어 `/sign-in`으로 되돌아온다 → **같은 버튼을 한 번 더** 누르면 `/sso-callback`으로 통과. 폼 가입(휴대폰) 불필요 | Settings → **Show token** · `GET api.browserbase.com/v1/projects`(X-BB-API-Key) 200 / 401 |
+| **Scrapfly** | `/dashboard` → 로그인 → **Continue with Google** | 로그인 후 `/verifying-browser` 화면은 **12초 뒤 자동 통과**(닫지 말 것). 온보딩은 Google → I'll explore on my own | Dashboard **API Keys** · `GET api.scrapfly.io/account?key=` 200 / 401 |
+| **Bright Data** | `brightdata.com/cp` → Google 로그인 → `login_not_registered=1` → 가입 다이얼로그의 **Continue with Google** → 라이선스 동의 → Let's get started | `/cp/start`의 키 복사·표시는 **이메일 6자리 OTP**를 요구(메일함 없으면 막힘) → **Settings → Users and API keys 표**에 전체 토큰이 그대로 보인다. 기본 만료 90일(2027-02-18) | `/cp/setting/users` · `GET api.brightdata.com/zone/get_active_zones` 200 / 401 |
+| **Simular Box** | `box.simular.ai` → Open your box → **Continue with Google**(새 탭) → `/join` ToS 체크 | ToS 체크가 있어야 Continue가 활성 | Access → Keys and devices → Create key(만료 never) · `POST mcp.box.simular.ai/mcp` MCP initialize 200 / 401 |
+| **Fly.io** | `fly.io/app/sign-in` → **Sign in with Google** → Skip to my dashboard | 앱 생성은 카드 필요하지만 **org token은 카드 없이 발급**. Expiration을 비우면 **Never** | Organization → Tokens · `POST api.fly.io/graphql {apps{nodes{name}}}` 200 / 잘못된 토큰은 GraphQL `UNAUTHORIZED` (machines API의 `/v1/apps`는 404) |
+
+### 7-2. 차단 5곳 (재시도 불필요, 2026-11-19 확인)
+| 서비스 | 막힌 단계 | 관측된 근거 |
+|---|---|---|
+| **Cerebras Cloud** | 키 사용 | Google 가입·온보딩은 통과(무료 크레딧 선택 가능)하지만 콘솔이 "API access isn't active yet — Add a payment method" 상태. 키 생성·복사가 **Add credits(카드)** 다이얼로그로만 열린다. 기본 키는 마스킹 표시(`csk-…`) |
+| **Mistral AI** | 키 생성 | Google 로그인·조직 생성은 되지만 무료 플랜은 "API 키를 활성화하려면 업그레이드" — 콘솔 `새 키` 비활성, `admin.mistral.ai/organization/api-keys`에서도 생성 시 "API 키 생성 실패" |
+| **Lightning AI** | 가입 | `platform.lightning.ai/sign-in` Google 승인 후 `?error=signups_disabled`. 랜딩 "Start free" 버튼도 disabled |
+| **Outcrawl** | 서비스 | `outcrawl.com`이 개인 블로그(`rabzelj.com`)로 리디렉션, `app.outcrawl.com`은 DNS 실패(ERR_TUNNEL_CONNECTION_FAILED) |
+| **Koyeb** | 콘솔 | Google 로그인으로 계정·org는 생성되나(`org name`은 전역 중복이라 `rlaalsdn28362` 사용) 콘솔이 "Koyeb is joining Mistral!" 안내만 띄우고 API 토큰 UI가 없다(`/settings/api` → 홈으로 대체) |
+
+---
+
+## 8. 2026-11-19 다섯 번째 계정 `rlaalsdn2836@gmail.com` 실행 (24/25 성공, Modal 심사 대기)
+
+같은 목록을 새 계정으로 한 번 더 돌린 결과다. **성공 24곳 + GitHub 신규**, Modal만 심사 대기. 아래는 이번에 새로 확인된 것만 적는다(절차는 2·6·7장과 동일).
+
+### 8-1. Google 계정 본인 인증은 계정당 1회, 첫 OAuth에서 뜬다
+- 새 계정의 첫 Google OAuth(Cohere)에서 `accounts.google.com/v3/signin/challenge/dp` — **"Apple iPhone …에서 Google 앱 열기 / 휴대전화에서 `NN` 값을 탭"** 이 뜬다. 인증 방법은 **휴대폰 승인 하나뿐**(문자 코드 없음).
+- 화면의 숫자는 **만료되면 새로 발급**된다(37 → 6). 사용자에게는 항상 **현재 화면의 숫자**를 불러야 한다. 승인 후 자동으로 동의 화면(`signin/oauth/id`)으로 넘어간다.
+- 한 번 통과하면 이후 20여 개 서비스 OAuth는 추가 인증 없이 통과. `인증 방법 더보기`는 이 계정에 다른 수단을 주지 않는다.
+
+### 8-2. Resend·Clerk API는 User-Agent 없으면 Cloudflare 1010(403)
+- `curl`/파이썬 기본 UA로 호출하면 `error code: 1010` **403**. **브라우저 UA를 넣으면** Resend `GET /domains` 200 / 잘못된 키 400, Clerk `GET /v1/instance` 200 / 401. 검증 스크립트에 UA를 기본으로 넣을 것.
+
+### 8-3. Fly.io GraphQL은 200으로 오류를 돌려준다
+- 유효 토큰 → `{"data":{"apps":{"nodes":[]}}}`. 무효 토큰도 **HTTP 200**이고 본문이 `errors:[{extensions:{code:"UNAUTHORIZED"}}]` → **본문으로 판별**해야 한다(HTTP 코드만 보면 오탐).
+- 로그아웃은 UI 메뉴가 아니라 **`https://fly.io/app/sign-out`** 이 확실하다(`#header-account-menu`의 링크: `/user/settings`·`/organizations`·`/tokens`·`/app/sign-out`).
+
+### 8-4. 이번에 달라진/새로 확인된 예외
+| 서비스 | 관측 |
+|---|---|
+| **Modal** | Google 가입 직후 `/account-pending` **"Account under review"**. 폼(work email·company·GitHub·용도) 제출 → "Submitted. We'll be in touch." **승인 전에는 토큰 페이지 접근 불가**(이전 2026-11-18 실행에서는 즉시 Starter). |
+| **Simular Box** | 새 계정도 **"Box Free 0 credits left"** — 무료 5,000 크레딧이 계정이 아니라 **브라우저/기기 단위 1회**로 보인다. 키 발급·MCP 200은 정상. |
+| **Jina** | 새 계정 로그인 시 `/ko/api-dashboard/key-manager`가 "데이터가 없습니다" + 세션 갱신 알림 → **브라우저당 1회** 지급 규칙 재확인. 기존 익명 키(9.94M)를 그대로 쓴다. |
+| **Bright Data** | `login_not_registered=1` → Sign up 다이얼로그의 **Continue with Google**을 누르면 "Please wait" → `/cp/start`로 새 계정 생성. 키 표는 `Settings → Users and API keys`(Users 탭)이고 **만료는 90일 기본**(Never 선택지 없음). |
+| **Cloudinary** | `register_free`의 SIGN UP WITH GOOGLE이 **1회차엔 `?login_error`로 되돌아오고 2회차에 생성**된다(새 계정 첫 가입 시). |
+| **Browserbase** | 로그아웃은 사이드바 업그레이드 버튼 → **Sign out**. 새 org는 Google OAuth 후 `/sso-callback`에서 자동 생성. |
+| **Scrapfly** | Logout 후 페이지에 **Google 계정 선택 iframe**이 뜨고 "rlaalsdn 계정 사용"을 누르면 새 계정이 만들어진다(별도 sign-up 불필요). |
+| **ElevenLabs** | Google 로그인 후 `__/auth/handler` → 잠시 `/app/sign-in`으로 돌아왔다가 `/app/developers/api-keys`에서 로그인 완료. 온보딩 없이 키 발급 가능. |
+| **MongoDB Atlas** | ToS 체크박스 좌표는 뷰포트 스케일 **(x 226, y 213)** 부근(18×18). 제출 후 클러스터 온보딩은 `Skip - I'm here for something else`. |
+| **InstaBox** | WorkOS `Agree & continue`의 서명자로 계정 이메일이 표시된다 → **계정 귀속 확인에 유용**. |
+
+### 8-5. 이 환경에서 계속 유효한 규칙
+- 이전 계정 쿠키가 남아 있으므로 **서비스마다 계정 표시 확인 → 로그아웃 → 새 계정** 순서를 지켜야 한다(안 지키면 이전 계정에 키가 붙는다). 로그아웃 경로가 UI에 없을 때의 우회: Cloudinary `cloudinary.com/users/logout`, Fly `fly.io/app/sign-out`, Turso/Neon/Supabase/Mux는 계정 메뉴.
+- 발급 산출물은 계정별로 분리: `free-api-keys-<계정>.md`, `insert_keys_<계정>.py`, `verify_keys_<계정>.py`.
+
+---
+
+## 9. 2026-11-19 여섯 번째 계정 `rlaalsdn4567456@gmail.com` 실행에서 새로 확인된 것 (추가 9종)
+
+기존 계정(이미 AI Studio·Bright Data·Scrapfly 등에 계정이 있는 계정)으로 추가 9종을 돌린 결과다. **5곳 성공**(Turso·InstaBox·Browserbase·Simular Box·Fly.io) / **1곳 키 발급·무료 등급 미개통**(AI Studio) / **2곳 심사 대기**(Modal·Scrapfly) / **1곳 가입 거부**(Bright Data).
+
+### 9-1. AI Studio — 기존 프로젝트가 있는 계정은 "API 키 만들기"로도 무료 등급이 안 열린다
+- `API 키 만들기` 대화상자의 프로젝트 선택지가 **기존 프로젝트 하나뿐**이면(신규 계정의 `Default Gemini Project` 자동 생성 경로가 없음) 그 프로젝트에 키가 발급된다. 키는 유효(모델 목록 200)하지만 프로젝트가 `제한됨(restricted)` + 결제 미설정이면 **generateContent 403** — `"The Gemini API free tier is not available for this project … set up billing"`.
+- 즉 6-1의 "API 키 만들기만 누르면 기본 프로젝트 자동 생성"은 **AI Studio를 처음 여는 계정에서만** 성립한다. 기존 프로젝트가 있는 계정에서 쓸 수 있는 무료 키를 얻으려면 새 프로젝트가 필요하고, 그 경로는 `suspicious`로 막혀 있다(5-1).
+
+### 9-2. Bright Data — gmail.com은 이제 가입 거부
+- `brightdata.com/cp` → Google 로그인 → `?login_not_registered=1` → 가입 다이얼로그 **Continue with Google** → 새 탭 **`/error_email`**: **"Signing up with your email has been denied … A forbidden domain / A domain for disposable email addresses."**
+- gmail.com 주소로는 신규 가입이 불가하다(기존에 만든 계정은 그대로). 이의신청(evaluation form)은 제출하지 않았다.
+
+### 9-3. Scrapfly — 다중 계정 감지로 수동 심사(키 없음)
+- `/dashboard` → **`/dashboard/verify`**: "Your account is queued for manual review" + 사유 **"Multi-account check: we detected signals on your account that overlap with another Scrapfly account."** 검토 1~2 영업일.
+- 같은 화면: **"Do not create additional accounts while your verification is pending. Doing so will automatically revoke every involved account."** → **재시도·추가 가입 금지**. 같은 브라우저에서 계정을 갈아타면 이 감지에 걸린다.
+
+### 9-4. Simular Box 무료 5,000 크레딧은 브라우저 단위 1회
+- 같은 브라우저에서 새 Google 계정으로 가입해도 **"Box Free 0 credits left"**. 키 발급·MCP 200은 정상. (8-4의 추정이 재확인됨)
+
+### 9-5. 그 밖의 경로 메모
+- **Turso**: 사용자 메뉴(Sign out)의 Clerk 팝오버 항목은 접근성 라벨이 비어 있다 — 스크린샷 기준 **Manage account / Documentation / Status Page / Sign out** 순서(마지막이 Sign out). `/login/sso-callback`은 30~40초 스피너 후 `/<github-username>`으로 착지.
+- **InstaBox** 로그아웃은 계정 메뉴 → Sign out → `auth.instabox.sh`로 돌아감. 새 계정도 같은 Google 버튼 한 번으로 생성된다.
+- **Browserbase** 로그아웃은 사용자 버튼 → Sign out(Cloudflare 챌린지가 잠깐 뜨지만 자동 통과 후 `/sign-in`).
+- **Scrapfly** 로그아웃은 UI에 없고 **`scrapfly.io/logout`** 이 확실하다(→ 홈의 Google 계정 선택 iframe에서 "rlaalsdn 계정 사용"을 누르면 새 계정 생성). 단, 9-3의 다중 계정 감지에 주의.
+- **Fly.io** 새 계정의 org slug는 이메일 앞부분을 잘라 만든다(예: `rlaalsdn-536`). 토큰 표에 `Created by <이메일>`·`Expires: Never`가 보인다.

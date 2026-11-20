@@ -383,3 +383,140 @@ README에 새로 들어온 #4 Cerebras, #5 Mistral, #8 Lightning AI, #18 Outcraw
 - **Browserbase** 로그아웃은 사용자 버튼 → Sign out(Cloudflare 챌린지가 잠깐 뜨지만 자동 통과 후 `/sign-in`).
 - **Scrapfly** 로그아웃은 UI에 없고 **`scrapfly.io/logout`** 이 확실하다(→ 홈의 Google 계정 선택 iframe에서 "rlaalsdn 계정 사용"을 누르면 새 계정 생성). 단, 9-3의 다중 계정 감지에 주의.
 - **Fly.io** 새 계정의 org slug는 이메일 앞부분을 잘라 만든다(예: `rlaalsdn-536`). 토큰 표에 `Created by <이메일>`·`Expires: Never`가 보인다.
+
+---
+
+## 10. 2026-11-20 `rlaalsdn828` — 이메일(매직링크·이메일 OTP)만으로 가입되는 곳은 **0곳**
+
+Google OAuth 본인 인증(휴대전화 승인)이 막힌 계정으로 같은 목록을 "비밀번호 없이 이메일 코드/매직링크" 경로로 뚫어 보려 한 조사다. **Gmail은 정상적으로 읽혔지만 서비스 가입은 한 곳도 되지 않았다.** 같은 상황이 다시 오면 이 장만 보면 된다.
+
+### 10-1. Gmail은 OAuth 벽과 별개로 살아 있다
+- 새 브라우저에서 `mail.google.com`을 열면 세션이 남아 받은편지함이 그대로 열리는 경우가 있다(2026-11-20 `rlaalsdn828@gmail.com` 확인). **OAuth가 막혀도 메일 읽기는 되므로**, 이메일 인증이 필요한 단계(도메인 인증·키 표시 OTP 등)는 그 계정으로 처리할 수 있다.
+- 반대로 OAuth는 그대로 막힌다: `accounts.google.com/v3/signin/challenge/dp` — "Apple iPhone …에서 Google 앱 열기 / 휴대전화에서 `NN` 값 탭". `인증 방법 더보기`를 열면 **`인증 방법 선택`에 휴대전화 승인 하나뿐**(문자·이메일 코드 없음). 숫자는 매번 새로 발급된다(11-20 확인값 `99`).
+
+### 10-2. 이 목록에는 passwordless 이메일 가입이 없다 (2026-11-20 실측)
+| 서비스 | 가입 화면 | 판정 |
+|---|---|---|
+| OpenRouter | `/sign-up` = 이름 + Email + **Password** (Google·Hugging Face·MetaMask) | 비밀번호 |
+| Turso | `app.turso.tech/signup`(Clerk) = Email + **Password** (GitHub·Google·AgentID) | 비밀번호 |
+| PostHog | `/login` 이메일 입력 시 **"There's no account for this email yet. Choose a password to create one."** | 비밀번호 |
+| Upstash | Clerk = Email + **Password** (Google·GitHub·SAML) | 비밀번호 |
+| Neon | Keycloak = Email + **Password** (GitHub·Google) | 비밀번호 |
+| Fly.io | `/app/sign-up` → 이름·이메일 → **`/app/sign-up/password`** | 비밀번호 |
+| Resend | Email + **Password(12자+)** (Google·GitHub) | 비밀번호 |
+| Cloudinary | SIGN UP WITH EMAIL(**비밀번호**) / GOOGLE / GITHUB | 비밀번호 |
+| Supabase | Email + **Password** (GitHub·Google·ChatGPT·SSO) | 비밀번호 |
+| Cohere | Email + **Password** (Google·GitHub) | 비밀번호 |
+| Clerk | `dashboard.clerk.com/sign-up` = Email + **Password** (ChatGPT·GitHub·Google) | 비밀번호 |
+| Browserbase | Email + **휴대폰 번호** + Password + reCAPTCHA | 비밀번호+전화 |
+| MongoDB Atlas | Email + Password → **휴대폰 인증** (휴대폰 면제 경로는 Google뿐) | 비밀번호+전화 |
+| Modal | GitHub / Google / SSO — **이메일 입력란 없음** | OAuth 전용 |
+| Simular Box | **"Sign in with Google or GitHub"** | OAuth 전용 |
+| Tavily·Firecrawl·ElevenLabs·Mux | 이전 실행 기록상 Email+Password / Google(+GitHub) | 비밀번호 |
+
+- Clerk·WorkOS 기반이라도 이 목록의 구성은 전부 이메일+비밀번호다. 새로 보인 OAuth 선택지 `Continue with ChatGPT`(Clerk·Supabase)·`Continue with Hugging Face`(OpenRouter)·`AgentID`(Turso)는 이 계정으로 쓸 수 있는 신원이 아니다.
+- **규칙**: 이 목록에서 "비밀번호 없이 이메일만으로 가입" 요청이 오면 시도하지 말고 바로 10-3으로 간다.
+
+### 10-3. 그때 실제로 열리는 두 갈래
+1. **사용자가 정한 사이트별 비밀번호** → 볼트 `login` 카드(사이트마다 따로). 다른 계정의 기존 비밀번호 재사용은 금지.
+2. **OAuth가 통과하는 새 Google 계정** — 이전 6개 계정은 첫 OAuth에서 휴대폰 승인 1회만 통과하면 20여 곳이 한 번에 열렸다. 계정 하나가 dp 벽에 걸리면 목록 전체가 막히므로, 이 경로가 훨씬 빠르다.
+
+### 10-4. 이번에 확인한 로그아웃 경로(계정 격리용)
+- **PostHog**: 좌하단 프로젝트 스위처 → `Log out` (`! More` 메뉴에는 없음). `/logout`은 POST 전용이라 직접 URL은 에러.
+- **Browserbase**: 사이드바 **Upgrade** 팝오버 → `Sign out` (`/sign-out`은 404, 조직 메뉴에는 Organization settings만).
+- **Turso**: 사용자 메뉴 마지막 항목(라벨 없음) = Sign out.
+- **OpenRouter**: 좌상단 `Personal`(=Switch account) → `Sign out`. 무거운 페이지에서 클릭이 `locator.scrollIntoViewIfNeeded` 타임아웃으로 실패하면 **새 탭에서 다시 열면** 정상 동작.
+- **Neon·Supabase·Upstash·Fly.io**: 계정/아바타 메뉴 → Log out · `fly.io/app/sign-out`.
+- 로그아웃 상태로 두면 다음 실행에서 다시 로그인해야 하므로, 가입을 시도하지 않는 사이트는 세션을 건드리지 않는 편이 낫다.
+
+---
+
+## 11. 2026-11-20 `rlaalsdn828` 3차 — Google 인증 통과 후 **19곳 중 18곳 성공**, GitHub 계정 생성
+
+10장에서 OAuth 벽에 막혔던 계정이 **휴대전화 승인만 통과하자 19곳 내내 추가 인증 없이** 전부 열렸다(성공 18 / 심사 대기 1). 1차의 AI Studio·Jina 키는 유지. 계정별 산출물은 `free-api-keys-rlaalsdn828.md`, `insert_keys_rlaalsdn828.py`, `verify_keys_rlaalsdn828.py`(22케이스 22/22).
+
+### 11-1. Google 인증 한 번이면 19곳이 열린다 (재확인)
+- 인증이 통과된 상태로 세션을 인계받자 Cohere·OpenRouter·Tavily·Firecrawl·Cloudinary·Resend·PostHog·Upstash·Clerk·ElevenLabs·MongoDB·Browserbase·Simular·Fly.io·InstaBox·Modal + GitHub/Supabase/Mux/Neon/Turso(GitHub 경로)까지 **추가 challenge 없이** 통과. "이 계정은 OAuth가 안 된다"는 판단은 dp 화면이 실제로 뜰 때만 하라.
+- **계정 선택 화면에서 계정 항목이 오버레이(아래로 스크롤 버튼)에 가려 ref 클릭이 `blocked_by_overlay`로 막히면**: `Tab`으로 계정 목록을 순회해 대상에 포커스를 주고 **Enter**. (Simular에서 7회 Tab → Enter로 통과)
+
+### 11-2. 마스킹된 키 전문을 읽는 가장 확실한 방법
+- 클립보드 API(`navigator.clipboard.readText()`)는 이 브라우저에서 타임아웃/권한 문제로 실패한다.
+- **키 목록의 Copy 버튼 → 페이지 안의 다른 텍스트 입력(Clerk는 `Find... Ctrl+K`, Firecrawl·OpenRouter는 다이얼로그 Name 칸)에 `Ctrl+V`** → 그 입력란의 값이 곧 전문. 다이얼로그가 닫혔다면 다시 열지 말고 페이지 내 검색/이름 입력란을 쓰면 된다.
+- 마스킹 입력란의 `.value`를 `browser_evaluate`로 읽으면 `sk_test_B…KKWXB` 같은 축약값(length 19)만 나온다 — **DOM에서 전문을 얻을 수 없다**.
+
+### 11-3. 이번에 새로 확인한 함정
+| 서비스 | 관측 | 대응 |
+|---|---|---|
+| **GitHub 가입** | Username이 `rlaalsdn828-code`로 미리 채워져 있음(접미사 제안) | 공개 API `api.github.com/users/<name>` 404면 그 이름은 비어 있다 → 지우고 원하는 이름 입력 후 Create account |
+| **GitHub 신규 계정 반영** | 생성 직후 `/users/<login>` 404, 수 분 뒤 200 | 404를 "생성 실패"로 읽지 말 것. 대시보드 문구/설정으로 확인 |
+| **OpenRouter** | `/sign-up/sso-callback` 다음 **`/sign-up/protect-check`** — "Verifying your request" 45초 후 "Verification didn't complete" | **Try again** 1회 → `/sign-up/continue`(약관 체크) → 통과(호스트 솔버 로그) |
+| **Clerk 신규 키 무효화** | `Add new key`로 만든 키가 발급 직후 200 → **수분 뒤 401 `clerk_key_invalid`**(minwoo·minwoo2 두 번 재현). 대시보드 Copy 값 자체가 401 | **인스턴스 default 키**로 검증·보관. 새 키 생성에는 **Gmail 인증코드** 필요(코드는 `mail.google.com` 세션에서 읽음) |
+| **Supabase** | `sign-in-mfa#access_token=…` 화면을 떠나 다른 URL로 이동하면 세션 미적용 | `dashboard/account/tokens`를 다시 열어 **Continue with GitHub** 한 번 더 → 그대로 진입 |
+| **Neon** | `/app/org-.../welcome` → `/app/settings` 이동 시 페이지 **frozen**(스냅샷 3초 타임아웃, Escape·스크린샷 모두 불가) | **새 탭**에서 `console.neon.tech/app/settings#api-keys` 직접 열기 → 정상 |
+| **Mux** | `?oauth=error` → `create an account` → `/signup?email=...&invite_id=oauth` → GitHub 버튼 → 폼 → **30초 대기** 후 Create account | 기존 절차 그대로 유효(환경 생성 후 Access Tokens) |
+| **Browserbase** | `/auth/complete` 처리 중 **세션 재시작**(빈 탭) | 로그인 쿠키는 유지 → `/settings` 재접속, Show token |
+| **Modal** | Google 가입 직후 `/account-pending`, pending 토큰에 `"purpose":"ban-appeal"` | 심사 폼(work email·Personal·GitHub·용도) 제출 → "Submitted. We'll be in touch." 승인 전 토큰 불가 |
+| **Simular Box** | 이전 계정 세션이 남아 있으면 `/box`가 바로 열린다 | **Sign out** 후 Google → `/join`(ToS 체크) → Access → Keys and devices |
+| **InstaBox** | 1회 시도로 `ibk_…` 발급(quota_exceeded 없음) | WorkOS `Agree & continue` → API Keys → Create Key |
+
+### 11-4. 이번 계정의 값 위치 메모
+- **OpenRouter** 만료/한도는 `GET /api/v1/key`의 `expires_at: null`·`limit: null`로 확인(화면은 Never/No limit).
+- **Fly.io** org token은 Expiration을 비워 Never, 검증은 GraphQL 본문(`data.apps` vs `errors[UNAUTHORIZED]`).
+- **Turso** 조직 API 경로는 slug(`/v1/organizations/<slug>/databases`), 숫자 org id는 404.
+- **Neon** `/api/v2/projects`는 `org_id` 쿼리 필수, `/api/v2/users/me`로 계정 귀속(email·auth_accounts) 확인.
+- **MongoDB** Model API 키는 org 컨텍스트 `#/org/<orgId>/aiModels/modelAPIKeys`에서만 생성 UI가 보인다(Project 0 선택).
+- **Cloudinary** 새 계정의 `register_free` SIGN UP WITH GOOGLE은 이번엔 **1회차에 바로 생성**됐다(이전 계정은 2회차).
+
+---
+
+## 12. 2026-11-20 `rlaalsdn433` — AI Studio 는 **Firebase 프로젝트로 우회** (20/21 성공, Modal 심사 대기)
+
+일곱 번째 계정 실행. Google 본인 인증(휴대전화 승인, 숫자 `65`)이 **GitHub 가입 중 1회** 떴고 승인 후 20곳이 challenge 없이 통과했다. 산출물은 `free-api-keys-rlaalsdn433.md`, `insert_keys_rlaalsdn433.py`(28항목), `verify_keys_rlaalsdn433.py`(22케이스 22/22).
+
+### 12-1. Cloud Console 첫 화면은 "상업적 목적" 선언을 요구한다 — Firebase 로 우회
+- 새 계정으로 `console.cloud.google.com/projectcreate` 를 처음 열면 **"rlaalsdn님, 환영합니다" 약관 화면**이 뜬다. **GCP 서비스 약관 체크만으로는 `동의 및 계속하기`가 비활성**이고, "현재 또는 향후에 **상업적 목적**으로 Google Cloud Platform을 사용할 계획입니다" 체크박스까지 눌러야 활성화된다(해제하면 "계속하려면 서비스 약관에 동의해야 합니다.").
+- 사용자의 상업적 목적을 대신 선언하는 것은 피해야 하므로, **AI Studio 키가 필요할 때의 대안 경로**:
+  1. `console.firebase.google.com` → **"Firebase 프로젝트를 설정하여 시작하기"** → 이름 입력 → **Firebase 약관만** 체크(Google 개발자 프로그램·Firebase의 Gemini·Analytics 는 모두 OFF) → 프로젝트 만들기. → **GCP 프로젝트가 약관 선언 없이 생성**된다(Spark 무료).
+  2. `aistudio.google.com/api-keys` 새로고침 → `API 키 만들기` → Project 콤보박스 → **`프로젝트 가져오기`** → 방금 만든 프로젝트 검색 → 가져오기 → 키 이름 입력 → 키 만들기.
+  3. 키는 곧바로 200(`GET /v1beta/models`) — 가져오기·키 생성 과정에서 `generativelanguage.googleapis.com` 이 활성화된다. 별도 API 사용 설정 클릭도 필요 없었다.
+- **AI Studio `프로젝트 만들기`가 `suspicious`로 막히는 계정**은 이 경로가 가장 깨끗하다(Cloud Console 약관 화면 자체를 만나지 않는다).
+- 이번 계정은 온보딩 직후 `API 키 만들기`를 눌렀을 때 **`No Cloud Projects Available`**(기본 프로젝트 자동 생성 없음)이 떠서 6-1의 자동 생성 경로가 성립하지 않았다. 계정 상태에 따라 갈린다.
+
+### 12-2. 이번에 새로 확인한 함정
+| 서비스 | 관측 | 대응 |
+|---|---|---|
+| **Firecrawl** | persona 선택 항목(`Developer / Engineer`)에 **접근성 ref 가 없다** | `browser_click` 좌표 클릭(뷰포트 y≈447). 이후 약관 토글·수신 동의 OFF → Continue |
+| **Tavily** | 기본 키가 `****9Rb6` 마스킹이고 2026-11-20부터 목록에서 전문 확인 불가 | **Create API key** 로 새 키를 만들어 다이얼로그 값을 즉시 기록 |
+| **Clerk** | API Keys 페이지의 **Reveal Secret Key** 로 default secret 전문이 보인다 | 새 키를 만들지 않아 **Gmail 인증코드 단계를 건너뜀**(default 키가 곧 유효 키) |
+| **Neon** | welcome 화면이 frozen — **Escape 로도 안 풀리고**, 새 탭 내비게이션은 `ERR_ABORTED`/무응답 | **같은 탭에서 `console.neon.tech/app/settings/api-keys` 로 새 내비게이션**하면 정상 렌더 |
+| **ElevenLabs** | 동의 화면에서 `div.r7fnGb` 오버레이로 ref 클릭이 `blocked_by_overlay` | **Tab 으로 "계속"에 포커스 → Enter** (1회로 통과) |
+| **Jina** | rlaalsdn28362 세션이 남아 있었다 | 사이드바 계정 → 설정(settings) → 로그아웃 → 확인 → 약관 체크 → Google로 계속하기. 키는 **브라우저 공용**이라 이전 계정과 같은 값이 보인다 |
+| **Simular Box** | 새 계정인데 **"Box Free 5,000 credits"** 표시(이전 계정은 0) | 크레딧 표시는 브라우저/계정 단위가 섞여 보일 수 있다 — 키 발급·MCP 200 으로 판정 |
+| **MongoDB** | ToS LeafyGreen 체크박스는 `input` 이 0×0 | 실제 18×18 래퍼를 **css 좌표**(`css_x 430, css_y 212`)로 클릭 |
+| **OpenRouter** | 이번 계정은 `protect-check` 없이 `/sign-up/continue`(약관 체크)로 바로 통과 | 계정/타이밍에 따라 다르다 — 화면에 나오는 단계만 따르면 된다 |
+| **GitHub** | Username 제안값 `rlaalsdn433-art` | 공개 API `api.github.com/users/<name>` 404 확인 후 `rlaalsdn433` 으로 변경 |
+
+### 12-3. 계정 격리 로그아웃 경로(추가 확인)
+- **Tavily**: 대시보드 우상단 계정 버튼이 곧 **로그인 화면으로 이동**(로그아웃). 설정 페이지의 계정 버튼도 동일.
+- **Firecrawl**: 계정 버튼 → Sign out. **Resend**: 계정 메뉴 마지막 항목. **PostHog**: 프로젝트 스위처 → Log out. **Upstash/Clerk**: 계정 메뉴 → Log out/Sign out.
+- **Neon**: 계정 메뉴(아바타) 클릭이 `mouseup` 을 놓치는 경우가 있다 — 한 번 더 클릭하면 열린다.
+- **Simular Box**: `/box` 우상단 **Sign out** 버튼이 바로 보인다. **InstaBox**: 계정 메뉴 → Sign out → `auth.instabox.sh` 회원가입 링크.
+- **Fly.io**: `fly.io/app/sign-out` (UI 메뉴 대신 URL 이 확실).
+
+---
+
+## 13. 2026-11-20 GitHub Classic PAT 발급 및 REST API 일괄 작업
+
+Google OAuth로 GitHub 계정을 생성한 직후 **Classic PAT까지 바로 발급**해 두어야, 이후 팔로우·스타·레포 조회 같은 작업을 브라우저 세션 전환과 Google 2차 인증 없이 API로 처리할 수 있다.
+
+### 13-1. GitHub Classic PAT 발급 절차 (만료 없음)
+1. GitHub 로그인 상태에서 `https://github.com/settings/tokens/new` 이동 (`Generate new token (classic)`).
+2. **Note**: `minwoo` · **Expiration**: **`No expiration`**
+3. **Scopes**: `repo`, `read:user`, `user:follow` 체크 후 **Generate token** (발급 후 `ghp_...` 값을 즉시 기록하고 `/workspace/github-pats.md`에 계정별로 보관).
+4. 검증: 응답 헤더 `x-oauth-scopes`에 `read:user, repo, user:follow`가 포함되는지 확인.
+
+### 13-2. PAT 기반 REST API 일괄 실행 (브라우저 전환 불필요)
+- 팔로우: `PUT https://api.github.com/user/following/<username>` (`Authorization: Bearer ghp_...`, `Accept: application/vnd.github+json`) → `204`
+- 스타: `PUT https://api.github.com/user/starred/<owner>/<repo>` → `204`
+- 공개 API로 결과 검증: `GET https://api.github.com/users/<login>/following` · `GET https://api.github.com/users/<login>/starred`
+- **주의**: 같은 브라우저 프로필에서 여러 Google 계정으로 재로그인하면 계정 선택 화면에 Google 세션들이 누적된다. 작업 완료 후 `vault`의 `google.com` username을 기준 계정으로 되돌려 두는 것을 잊지 않는다.

@@ -526,3 +526,55 @@ Google OAuth로 GitHub 계정을 생성한 직후 **Classic PAT까지 바로 발
 - 스타: `PUT https://api.github.com/user/starred/<owner>/<repo>` → `204`
 - 공개 API로 결과 검증: `GET https://api.github.com/users/<login>/following` · `GET https://api.github.com/users/<login>/starred`
 - **주의**: 같은 브라우저 프로필에서 여러 Google 계정으로 재로그인하면 계정 선택 화면에 Google 세션들이 누적된다. 작업 완료 후 `vault`의 `google.com` username을 기준 계정으로 되돌려 두는 것을 잊지 않는다.
+
+### 13-3. 전체 권한(모든 스코프) Classic PAT — 2026-11-21 8계정 일괄 발급
+- `settings/tokens/new` → Note(`minwoo-full`) → Expiration **No expiration** → **상위 스코프 체크박스 21개만 체크**하면 하위 스코프(repo:status·read:org·read:packages·manage_runners 등)가 자동으로 딸려 온다. 제출 후 GitHub이 "일부 스코프가 다른 스코프에 포함됨 — 최소 집합만 저장" 알림을 띄우고, 결과 `x-oauth-scopes`는 21개 최소 집합으로 돌아온다(전체 권한과 동등).
+- 상위 21개: `repo, workflow, write:packages, delete:packages, admin:org, admin:public_key, admin:repo_hook, admin:org_hook, gist, notifications, user, delete_repo, write:discussion, admin:enterprise, audit_log, codespace, copilot, write:network_configurations, project, admin:gpg_key, admin:ssh_signing_key`.
+- **계정 전환 루프**: `github.com/logout` → `Sign out of <계정>` → `/login` → `Continue with Google` → 계정 선택 →(필요 시 Google 휴대전화 숫자 승인)→ `/settings/tokens/new`. 계정을 바꾼 직후 첫 발급에서만 **sudo 확인 화면(`Confirm access`)** 이 뜨고, `Verify via email` 을 누르면 해당 계정 Gmail로 **8자리 코드**가 온다(15분 유효). 코드는 `mail.google.com/mail/?authuser=<주소>#search/github` 로 그 계정 메일함을 열어 읽는다(`/u/N` 인덱스는 `authuser` 로 대체 가능). 같은 세션에서 이어 발급하면 sudo는 다시 묻지 않는다.
+- 8계정 모두 Google OAuth 로그인이 필요하고, 계정에 따라 휴대전화 숫자 승인이 다시 뜬다(8계정 중 4계정에서 발생). 숫자는 계정 전환마다 새로 발급되므로 그때마다 사용자에게 즉시 전달한다.
+
+## 14. Vercel — 가입·토큰 발급 (2026-11-21 `rlaalsdn433` 확인, 전화·캡차 없음)
+
+1. `vercel.com/signup` → **Continue with Google** → Google 계정 선택 → **본인 인증 숫자**(계정에 따라 다시 뜰 수 있음, 이번엔 `16`) → 동의 **계속** → `/onboarding`.
+2. `/onboarding`: 플랜 **`I'm working on personal projects`(Hobby)** 선택 → **Team Name** 입력(예: `minwoo`) → **Continue** → `/welcome?teamSlug=…` 도착으로 가입 완료. **전화번호 인증·캡차 없음.**
+   - 팀명이 다른 계정에 선점돼 있으면 슬러그만 뒤에 숫자가 붙는다(이번엔 `minwoo` → 슬러그 `minwoo11`). 계정 username은 `<id>-<숫자>` 형태(이번엔 `rlaalsdn433-4137`).
+3. 토큰: `vercel.com/account/settings/tokens` (`/account/tokens` 는 여기로 리다이렉트) → **TOKEN NAME** `minwoo` → **SCOPE** 콤보박스에서 `Full Account`(목록 표기는 `+1 Full Account Non-SAML`) → **EXPIRATION** `No Expiration` → **Create**.
+4. **Create 직후 `Verify Your Identity` 다이얼로그가 뜬다** — "We'll email a 6-digit code to <계정 메일>" → **Send Code** → 코드는 **5분 만료**.
+   - 브라우저 프로필에 해당 Gmail 로그인이 살아 있으면 다른 탭에서 `mail.google.com` 을 열어 제목/본문에서 6자리를 바로 읽을 수 있다(이번엔 `700575`). 세션이 없으면 민우 님께 코드를 요청해야 한다.
+   - 입력 후 **Verify Code** → **Token Created** 다이얼로그에 `vcp_…` 전문이 **1회만** 표시된다. 즉시 기록.
+5. 검증: `GET https://api.vercel.com/v2/user` (`Authorization: Bearer vcp_…`) → **200**(`user.email`, `user.username`, `billing.plan`), 잘못된 키 → **403** `{"error":{"code":"forbidden","invalidToken":true}}`. 팀 확인 `GET /v2/teams` → 200(role OWNER). 토큰 메타 `GET /v5/user/tokens` → 이름·scope(`[{type:"user"}]` = Full Account)·만료 없음 확인.
+
+### 14-2. 2026-11-21 밤 — 같은 브라우저의 **두 번째 계정부터는 휴대폰 인증**이 붙는다 (공개 임시번호로는 통과 불가)
+- `vercel.com/signup` 이나 `vercel.com/login` → `Continue with Google` → 계정 선택 → 로그인 콜백이 **`/login/callback/verify/sms?…&accountCreated=1`** 로 떨어지고 "Please enter your phone number to verify your login. You will receive a single use code to submit." 화면이 뜬다. 계정은 이미 생성됐지만(`accountCreated=1`) 이 단계를 넘지 못하면 로그인·토큰 발급 불가.
+- 이메일 코드 경로(`Continue with Email` → Gmail 6자리)로 들어와도 **같은 휴대폰 단계**로 간다(2회 확인).
+- **GitHub OAuth 경로도 같은 관문**이다. Vercel 계정이 아직 없는 계정(`rlaalsdn4567456`)으로 `vercel.com/signup` → Continue with GitHub → Authorize 를 하면 콜백이 `…/verify/sms?…&mode=signup&accountCreated=1&loginType=github` 로 떨어지고 똑같이 휴대폰 입력을 요구한다. (이미 구글 가입으로 계정이 있는 계정은 GitHub 경로가 "There is already an account associated with your GitHub email address…" 로 막힌다.)
+- 공개 임시 SMS 번호 결과(모두 거부):
+  - quackr.io 미국 `+1 775 980 2006` → **"Invalid phone number type. Please use a mobile phone number."** (VoIP 판정, 발송조차 안 됨)
+  - receive-smss.com 영국 `+44 7985 260404` → **"The verification phone number has been temporarily blocked. Please wait 12 hours and try again."** (임시번호 인식)
+- 국가 목록은 243개국(+82 포함)이라 국가 제한이 아니라 **번호 유형** 문제다. 반복 제출은 계정 플래그 위험이 있으니 1~2회에서 멈추고, **실제 이동통신 번호**를 사용자에게 받아 진행한다(사용자 번호를 임의로 쓰지 않는다).
+- 16:38경 첫 계정(`rlaalsdn433`)은 이 단계가 없었으므로, **브라우저/네트워크당 첫 계정은 통과, 이후 계정은 휴대폰 인증**으로 보는 것이 맞다.
+- 2026-11-21 밤 시점에 **휴대폰 인증 미완료로 남은 Vercel 계정**: `rlaalsdn6274@gmail.com`(구글 가입으로 생성) · `rlaalsdn4567456@gmail.com`(GitHub OAuth로 생성). 로그인은 휴대폰 인증에서 막히므로 이후 실제 번호가 확보되면 그때 이어서 로그인→토큰 발급을 하면 된다(계정을 다시 만들 필요 없음).
+
+---
+
+## 15. Cloudflare — 가입·이메일 인증·Workers/R2/D1 토큰 발급 (2026-11-21 돌파 확인)
+
+과거(2026-11-17)에는 `dash.cloudflare.com` Turnstile 위젯이 55초+ 타임아웃으로 막혔으나, 2026-11-21 세션에서는 Turnstile이 정상 통과(`성공!`, `cf_challenge_response` 816바이트)해 가입부터 API 토큰 발급·검증까지 모두 완료되었다.
+
+1. **가입 경로 (이메일 + 비밀번호 전용)**:
+   - Cloudflare 로그인·가입 화면에는 **Google/GitHub 소셜 로그인 버튼이 없다**(이메일+비밀번호 전용).
+   - `https://dash.cloudflare.com/sign-up` → 이메일 + 비밀번호(볼트 `cloudflare.com` 등 사용자 지정 비밀번호) 입력 → Turnstile 통과 확인 후 제출 → 계정 생성 완료.
+2. **이메일 인증 (필수)**:
+   - 가입 직후 `"Please verify your email"` 배너가 뜨며, **이메일 인증을 마치기 전에는 API 토큰 생성이 막힌다**.
+   - 브라우저에 로그인된 해당 계정의 Gmail(`mail.google.com/mail/?authuser=<주소>`)에서 Cloudflare 인증 메일 링크를 클릭해 즉시 인증을 완료한다.
+3. **API 토큰 발급 (`/profile/api-tokens`)**:
+   - `https://dash.cloudflare.com/profile/api-tokens` → **Create Token** → **"Edit Cloudflare Workers"** 템플릿 선택.
+   - 권한에 **Workers Scripts: Edit, Workers KV Storage: Edit, Workers Routes: Edit, D1: Edit, Workers R2 Storage: Edit, DNS: Edit** 등이 모두 포함되었는지 확인하고, Account Resources = 해당 계정 / Zone Resources = **All zones**, TTL = 만료 없음(No expiration)으로 생성한다(`cfut_...` 전문 1회 표시, 즉시 기록).
+4. **검증**:
+   - `GET https://api.cloudflare.com/client/v4/user/tokens/verify` (`Authorization: Bearer <token>`) → `200`, `"success": true`
+   - `GET https://api.cloudflare.com/client/v4/accounts/<account_id>/d1/database` → `200`
+   - `GET https://api.cloudflare.com/client/v4/accounts/<account_id>/workers/scripts` → `200`
+5. **R2 활성화 주의**:
+   - 토큰에 `Workers R2 Storage: Edit` 권한이 들어가 있더라도, 계정에서 R2가 아직 활성화되지 않았으면 `GET .../r2/buckets`가 `10042 Please enable R2 through the Cloudflare Dashboard`를 반환한다.
+   - 대시보드 `/r2/plans`의 R2 활성화는 **$0.00 무료 등급이라도 결제 수단 등록 + 자동 갱신 구독 동의**를 요구하므로, 에이전트가 임의로 카드를 등록하지 말고 사용자에게 안내한다(나중에 카드 1회 연결 시 기존 토큰의 R2 권한이 그대로 동작).
+
